@@ -16,13 +16,16 @@ class MovieSpider(scrapy.Spider):
 
     def strip_list(self, list):
         stripped_list = []
-        for i in list:
-            if(i):
+        for unstripped in list:
+            if unstripped :
                 stripped_list.append(i.strip())
-            else:
+            else: #value doesn't exist
                 stripped_list.append(None)
+            #end if
+        #end for
         return stripped_list
-
+    #end def
+    
     def retrieve_movie(self, response):
         '''
         iterates through the movie page and obtains a list of actors
@@ -31,7 +34,6 @@ class MovieSpider(scrapy.Spider):
         current_page = response.xpath('//div[@id="titleCast"]/table/tr[@class="odd"] | //div[@id="titleCast"]/table/tr[@class="even"]')
         movie_dict = {}
         movie_dict[name] = []
-        print(name)
         for movie in current_page:
             check_list = []
             actor_name = movie.xpath('./td[@class="itemprop"]/a/span/text()').extract_first()
@@ -40,11 +42,13 @@ class MovieSpider(scrapy.Spider):
             if(not character_name):
                 #if character name is a url, then the hyperlink must be accessed
                 character_name = movie.xpath('./td[@class="character"]/a/text()').extract_first()
+            #end if
             character_url= response.urljoin(movie.xpath('./td[@class="character"]/a/@href').extract_first())
             check_list.extend((actor_name,actor_url, character_name, character_url))
             movie_dict[name].append(self.strip_list(check_list))
+        #end for
         print(movie_dict)
-        #end def
+    #end def
 
     def retrieve_movie_list(self, response):
         '''
@@ -56,6 +60,7 @@ class MovieSpider(scrapy.Spider):
         for movie in current_page:
             movie_url = response.urljoin(movie.extract())
             yield scrapy.Request(movie_url, callback=self.retrieve_movie)
+        #end for
         #yield scrapy.Request(response, callback=self.retrieve_movie_list)
     #end def
 
@@ -65,9 +70,10 @@ class MovieSpider(scrapy.Spider):
         is then passed to retrieve_movie_list to retrieve the movies
         '''   
         next_page = response.xpath('//div[@class="article"]//div[@class="desc"]/a[@class="lister-page-next next-page"]/@href')
-        if(len(next_page) != 0):
+        if len(next_page) != 0:
             next_page_url = response.urljoin(next_page[0].extract())
             yield scrapy.Request(next_page_url, callback=self.retrieve_movie_list)
+        #end if
     #end def
 
     def parse_genre(self, response):
